@@ -104,6 +104,7 @@ class Environment(ABC):
 
         self.auv.safety_check()
 
+        self.starting = True
 
 
     # def grab_frame(self):
@@ -128,6 +129,10 @@ class Environment(ABC):
         Returns:
         list: The initial state of the environment.
         """
+        if self.starting:
+            self.starting = False
+            self.save_extras(self.base_log_dir)
+
         self.step_counter = 0
 
         self._reset()
@@ -252,6 +257,10 @@ class Environment(ABC):
 
         return [x, y, z, roll, pitch, yaw]
     
+
+    def set_seed(self, seed: int) -> None:
+        random.seed(seed)
+        np.random.seed(seed)
 
     def save_extras(self, base_log_dir: str):
         shutil.copy2(f"{os.path.dirname(os.path.abspath(__file__))}/reward_config.py", base_log_dir)

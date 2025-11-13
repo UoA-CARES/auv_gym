@@ -1,6 +1,4 @@
-from pydantic import BaseModel
-from typing import List, Optional
-import numpy as np
+from typing import Optional
 import logging
 from enum import Enum
 

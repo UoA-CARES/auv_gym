@@ -129,6 +129,14 @@ class RotationTask(Environment):
         environment_info["inner_wheel_poses"] = marker_poses["inner_wheel"]
         environment_info["outter_wheel_poses"] = marker_poses["outter_wheel"]
 
+        if self.reward >= (self.goal_reward - 1):
+            if self.steps_to_success == 0:
+                self.steps_to_success = self.step_counter
+            self.success_counter += 1   
+
+        environment_info["success_counter"] = self.success_counter
+        environment_info["steps_to_success"] = self.steps_to_success
+
         return environment_info
 
     def _get_marker_poses(self, must_see_ids):
@@ -666,7 +674,12 @@ class JustSpin(RotationTask):
         return np.array(state)
     
 
-    # def _choose_goal(self, inner_wheel_poses):
-    #     # harder task, could be any seen marker
-    #     # pick a random one of the inner wheel poses
-    #     return random.choice(list(inner_wheel_poses.keys()))
+    def _choose_goal(self, inner_wheel_poses):
+        # harder task, could be any seen marker
+        # pick a random one of the inner wheel poses
+        while True:
+            choice = random.choice(list(inner_wheel_poses.keys()))
+            if choice < 6: # occationally other ones like 10 gets detected which creates detections issues cuz it's not stable and it's impossible to reach. not just picking between 1-6 cuz they're not always all detected
+                break
+
+        return choice

@@ -135,6 +135,10 @@ class Environment(ABC):
 
         self.step_counter = 0
 
+        self.reward = 0
+        self.success_counter = 0
+        self.steps_to_success = 0
+
         self._reset()
 
         

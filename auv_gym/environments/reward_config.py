@@ -8,7 +8,7 @@ decay_rate: Optional[float] = -0.1  # Adjust this value to control the decay rat
 scaling_factor: Optional[int] = 5 # Max reward from distance
 
 bonus_goal_range: Optional[int] = 10  # mm
-bonus_reward: Optional[float] = 10  # Reward for reaching the goal
+bonus_reward: Optional[float] = 3  # Reward for reaching the goal
 
 precision_tolerance: Optional[int] = 8
 noise_tolerance: Optional[int] = 5  # degrees
@@ -48,7 +48,7 @@ def _reward_function(previous_state, current_state):
 
     # Current yaw_before might not equal yaw_after in prev step, hence need to check before as well to see if it has reached the goal already
     if goal_difference_before <= precision_tolerance:
-        logging.info("----------Reached the Goal!----------")
+        print("----------Reached the Goal!----------")
         logging.debug(
             "Warning: Yaw before in current step not equal to Yaw after in prev step"
         )
@@ -77,7 +77,7 @@ def _reward_function(previous_state, current_state):
     reward += distance_reward
 
     if goal_difference_after <= precision_tolerance:
-        logging.info("----------Reached the Goal!----------")
+        print("----------Reached the Goal!----------")
         reward += bonus_reward
         # done = True
 

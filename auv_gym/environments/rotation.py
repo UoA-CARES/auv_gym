@@ -529,7 +529,7 @@ class RotationTask(Environment):
 
         return image
 
-class JustSpin(RotationTask):
+class OneMarkerSpin(RotationTask):
     def __init__(
         self,
         env_config: AUVEnvironmentConfig,
@@ -675,15 +675,13 @@ class JustSpin(RotationTask):
         return closest_marker_id
     
 
-class FiveMarkerSpin(JustSpin):
+class FiveMarkerSpin(OneMarkerSpin):
     def __init__(
         self,
         env_config: AUVEnvironmentConfig,
         auv_config: BoxfishConfig,
     ):
         super().__init__(env_config, auv_config)
-        self.total_time = 0
-        self.elapsed_num = 0
 
 
     def _choose_goal(self, inner_wheel_poses):

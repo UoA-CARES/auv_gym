@@ -200,21 +200,7 @@ class RotationTask(Environment):
                 poses["outter_wheel"][marker_id] = pose
 
         return poses
-    
 
-    def _choose_goal(self, inner_wheel_poses):
-        # pick which one of the inner wheel poses has a yaw closest to 45
-        closest_marker_id = None
-        closest_yaw_diff = float('inf')
-        target_yaw = 45  # degrees
-        for marker_id, pose in inner_wheel_poses.items():
-            yaw = self._get_yaw(pose)
-            yaw_diff = abs(yaw - target_yaw)
-            if yaw_diff < closest_yaw_diff:
-                closest_yaw_diff = yaw_diff
-                closest_marker_id = marker_id
-
-        return closest_marker_id
 
     def _get_target_yaw(self, poses):
         """
@@ -675,8 +661,32 @@ class JustSpin(RotationTask):
     
 
     def _choose_goal(self, inner_wheel_poses):
-        # harder task, could be any seen marker
-        # pick a random one of the inner wheel poses
+        # pick which one of the inner wheel poses has a yaw closest to 45
+        closest_marker_id = None
+        closest_yaw_diff = float('inf')
+        target_yaw = 45  # degrees
+        for marker_id, pose in inner_wheel_poses.items():
+            yaw = self._get_yaw(pose)
+            yaw_diff = abs(yaw - target_yaw)
+            if yaw_diff < closest_yaw_diff:
+                closest_yaw_diff = yaw_diff
+                closest_marker_id = marker_id
+
+        return closest_marker_id
+    
+
+class FiveMarkerSpin(JustSpin):
+    def __init__(
+        self,
+        env_config: AUVEnvironmentConfig,
+        auv_config: BoxfishConfig,
+    ):
+        super().__init__(env_config, auv_config)
+        self.total_time = 0
+        self.elapsed_num = 0
+
+
+    def _choose_goal(self, inner_wheel_poses):
         while True:
             choice = random.choice(list(inner_wheel_poses.keys()))
             if choice < 6: # occationally other ones like 10 gets detected which creates detections issues cuz it's not stable and it's impossible to reach. not just picking between 1-6 cuz they're not always all detected

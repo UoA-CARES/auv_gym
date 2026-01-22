@@ -1,5 +1,5 @@
 from auv_gym.environments.stationary import StationaryCubeTask
-from auv_gym.environments.rotation import RotationTask, JustSpin
+from auv_gym.environments.rotation import RotationTask, FiveMarkerSpin, OneMarkerSpin
 import os
 import auv_gym.tools.utils as utils
 
@@ -32,8 +32,10 @@ class EnvironmentFactory:
                 environment = StationaryCubeTask(env_config, auv_config)
             elif task == "rotation":
                 environment = RotationTask(env_config, auv_config)
-            elif task == "just_spin":
-                environment = JustSpin(env_config, auv_config)
+            elif task == "FiveMarkerSpin":
+                environment = FiveMarkerSpin(env_config, auv_config)
+            elif task == "OneMarkerSpin":
+                environment = OneMarkerSpin(env_config, auv_config)
 
         if environment is None:
             raise ValueError(f"Invalid domain or task: {domain}, {task}")

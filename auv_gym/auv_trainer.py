@@ -205,8 +205,8 @@ class AUVTrainer:
                     episode_num += 1
 
                 # Run loop at a fixed frequency
-                if self.auv_config.action_type == "velocity":
-                    self.dynamic_sleep(start_time)
+                # if self.auv_config.action_type == "velocity":
+                self.dynamic_sleep(start_time)
 
         self.record.stop_video()
 
@@ -365,8 +365,8 @@ class AUVTrainer:
                 self.environment.actions_taken = []
 
             # Run loop at a fixed frequency
-            if self.auv_config.action_type == "velocity":
-                self.dynamic_sleep(env_start_time)
+            # if self.auv_config.action_type == "velocity":
+            self.dynamic_sleep(env_start_time)
 
         end_time = time.time()
         elapsed_time = end_time - start_time

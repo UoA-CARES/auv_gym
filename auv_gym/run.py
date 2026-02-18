@@ -116,7 +116,16 @@ def main():
             #     gripper_teacher.agent.load_models("/home/yxin683/Desktop/transfer_model",f"{alg_config.algorithm}_{training_config.seeds[0]}")
             auv_trainer.train()
         elif run_config.command == "evaluate":
-            auv_trainer.agent.load_models("/home/tank/7oct/CTD4/CTD4-10-7o2--25_10_07_12-37-55-boxfish-just_spin/10/models/highest_reward",f"{alg_config.algorithm}_{training_config.seeds[0]}")
+
+            # load trained model
+            auv_trainer.agent.load_models('./checkpoints', 'SAC_highest')
+            
+            # load dreamer model
+            from tools.dreamer4_reward_fix import ImprovedDreamer4Agent
+            agent = ImprovedDreamer4Agent(obs_dim=6, action_dim=1)
+            agent.load('./checkpoints/dreamer4_fixed.pt')
+            auv_trainer.agent = agent
+    
             auv_trainer.evaluation_loop(200)
 
         if len(training_config.seeds) > 0:

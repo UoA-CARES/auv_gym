@@ -378,7 +378,7 @@ class ImprovedDreamer4Agent:
         obs_norm = self.normalize_observations(obs)
         obs_tensor = torch.FloatTensor(obs_norm).unsqueeze(0).to(self.device)
         action = self.policy.get_action(obs_tensor, deterministic)
-        return action.cpu().numpy()[0]
+        return action.cpu().numpy()[0] #.flatten()? or .squeeze()?
     
     def save(self, path: str):
         save_dict = {

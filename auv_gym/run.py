@@ -121,7 +121,7 @@ def main():
             auv_trainer.agent.load_models('./checkpoints', 'SAC_highest')
             
             # load dreamer model
-            from tools.dreamer4_reward_fix import ImprovedDreamer4Agent
+            from dreamer4_reward_fix import ImprovedDreamer4Agent
             agent = ImprovedDreamer4Agent(obs_dim=6, action_dim=1)
             agent.load('./checkpoints/dreamer4_fixed.pt')
             auv_trainer.agent = agent

@@ -90,6 +90,8 @@ class Environment(ABC):
         self.max_action_value = np.array(auv_config.max_values)
         self.min_action_value = np.array(auv_config.min_values)
 
+        self.base_log_dir = "gap"
+
         
         # # Pose to normalise the other positions against - consider (0,0)
         # self.reference_marker_id = env_config.reference_marker_id

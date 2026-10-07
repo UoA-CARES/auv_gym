@@ -8,7 +8,7 @@ decay_rate: Optional[float] = -0.1  # Adjust this value to control the decay rat
 scaling_factor: Optional[int] = 5 # Max reward from distance
 
 bonus_goal_range: Optional[int] = 10  # mm
-bonus_reward: Optional[float] = 3  # Reward for reaching the goal
+bonus_reward: Optional[float] = 5  # Reward for reaching the goal
 
 precision_tolerance: Optional[int] = 8
 noise_tolerance: Optional[int] = 5  # degrees

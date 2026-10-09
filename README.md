@@ -5,9 +5,10 @@
 <tr>
 <td width="30%" valign="top">
 
-<video autoplay muted playsinline controls loop width="100%" src="auv_gym/image/IMG_0560.MOV">
-  Your browser does not support embedded video. <a href="auv_gym/image/IMG_0560.MOV">Watch the testbed overview video</a>.
-</video>
+<a href="auv_gym/image/IMG_0560.MOV">
+  <img src="auv_gym/image/IMG_0560_preview.gif" alt="Animated preview of the underwater testbed operating in the pool" width="100%">
+</a>
+<p><small><a href="auv_gym/image/IMG_0560.MOV">Open the full-resolution pool video</a></small></p>
 
 </td>
 <td width="70%" valign="top">
@@ -25,6 +26,8 @@ The current implementation is validated with a Boxfish AUV. Boxfish is one vehic
 </td>
 </tr>
 </table>
+
+The looping GIF preview is used here because GitHub does not reliably render repository-local `<video>` tags in README pages. Click the preview to open the full `.MOV` video.
 
 
 
@@ -213,7 +216,8 @@ auv_gym/
 │   │   └── toolhead3.stl
 │   ├── image/
 │   │   ├── fixture_and_toolheads.jpeg
-│   │   └── IMG_0560.MOV
+│   │   ├── IMG_0560.MOV
+│   │   └── IMG_0560_preview.gif
 │   ├── tools/
 │   ├── robot_adapter.py
 │   ├── auv_trainer.py

@@ -5,7 +5,7 @@ setup(
     version='1.0.0',
     packages=find_packages(),
     url='',
-    license='',
+    license='MIT',
     author='RL_TEAM',
     author_email='cares@aucklanduni.ac.nz',
     description=''

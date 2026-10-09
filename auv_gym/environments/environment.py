@@ -10,11 +10,10 @@ from boxfish_lib.vision import utils
 import cv2
 import time
 from auv_gym.tools.configurations import AUVEnvironmentConfig
-from boxfish_lib.Boxfish import Boxfish
-from boxfish_lib.boxfish_configuration import BoxfishConfig
 import auv_gym.environments.reward_config as reward_config
 from boxfish_lib.vision.camera import Camera
 from scipy.spatial.transform import Rotation as R
+from auv_gym.robot_adapter import BoxfishAdapter, RobotAdapter
 
 
 def exception_handler(error_message):
@@ -56,12 +55,20 @@ class Environment(ABC):
     def __init__(
         self,
         env_config: AUVEnvironmentConfig,
-        auv_config: BoxfishConfig
+        auv_config=None,
+        robot: RobotAdapter = None,
     ):
         self.env_config = env_config
         self.display = env_config.display
 
-        self.auv = Boxfish(auv_config)
+        if robot is None:
+            if auv_config is None:
+                raise ValueError("Provide either robot or auv_config")
+            robot = BoxfishAdapter(auv_config)
+
+        self.robot = robot
+        # Keep the old attribute name for task and trainer compatibility.
+        self.auv = robot
         
         self.is_inverted = env_config.is_inverted
 
@@ -71,7 +78,7 @@ class Environment(ABC):
         )
         
 
-        self.action_type = auv_config.action_type
+        self.action_type = robot.action_type
 
         self.auv.home()
         self.step_counter = 0
@@ -87,8 +94,9 @@ class Environment(ABC):
 
         self.reward = 0
 
-        self.max_action_value = np.array(auv_config.max_values)
-        self.min_action_value = np.array(auv_config.min_values)
+        self.max_action_value = np.array(robot.max_values)
+        self.min_action_value = np.array(robot.min_values)
+        self.control_actions = robot.control_actions
 
         
         # # Pose to normalise the other positions against - consider (0,0)
@@ -101,6 +109,7 @@ class Environment(ABC):
         self.previous_state = []
 
         self.chosen_marker_id = None
+        self.base_log_dir = None
 
         self.auv.safety_check()
 
@@ -131,7 +140,8 @@ class Environment(ABC):
         """
         if self.starting:
             self.starting = False
-            self.save_extras(self.base_log_dir)
+            if self.base_log_dir:
+                self.save_extras(self.base_log_dir)
 
         self.step_counter = 0
 

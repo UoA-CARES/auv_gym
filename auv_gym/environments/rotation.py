@@ -12,8 +12,8 @@ import math
 
 from auv_gym.tools.configurations import AUVEnvironmentConfig
 from auv_gym.tools.pid_controller import PIDController
-from boxfish_lib.boxfish_configuration import BoxfishConfig
 from boxfish_lib.vision.STagDetector import STagDetector
+from auv_gym.robot_adapter import RobotAdapter
 import random
 
 def exception_handler(error_message):
@@ -44,11 +44,12 @@ class RotationTask(Environment):
     def __init__(
         self,
         env_config: AUVEnvironmentConfig,
-        auv_config: BoxfishConfig,
+        auv_config=None,
+        robot: RobotAdapter = None,
     ):
-        super().__init__(env_config, auv_config)
+        super().__init__(env_config, auv_config, robot)
 
-        self.gripper_marker_ids = auv_config.gripper_marker_ids
+        self.gripper_marker_ids = self.robot.gripper_marker_ids
         self.inner_wheel_marker_ids = [1,2,3,4,5,6,7,8,9,10]
         self.outter_wheel_marker_ids = [21,22,23,24,25,26,27,28]
 
@@ -533,9 +534,10 @@ class OneMarkerSpin(RotationTask):
     def __init__(
         self,
         env_config: AUVEnvironmentConfig,
-        auv_config: BoxfishConfig,
+        auv_config=None,
+        robot: RobotAdapter = None,
     ):
-        super().__init__(env_config, auv_config)
+        super().__init__(env_config, auv_config, robot)
         self.total_time = 0
         self.elapsed_num = 0
 
@@ -679,9 +681,10 @@ class FiveMarkerSpin(OneMarkerSpin):
     def __init__(
         self,
         env_config: AUVEnvironmentConfig,
-        auv_config: BoxfishConfig,
+        auv_config=None,
+        robot: RobotAdapter = None,
     ):
-        super().__init__(env_config, auv_config)
+        super().__init__(env_config, auv_config, robot)
 
 
     def _choose_goal(self, inner_wheel_poses):

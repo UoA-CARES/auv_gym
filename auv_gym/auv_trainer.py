@@ -16,6 +16,7 @@ from cares_reinforcement_learning.util.configurations import (
 from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from tools.configurations import AUVEnvironmentConfig
 from environments.environment_factory import EnvironmentFactory
+from auv_gym.robot_adapter import RobotAdapter
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -26,8 +27,9 @@ class AUVTrainer:
         env_config: AUVEnvironmentConfig,
         training_config: TrainingConfig,
         alg_config: AlgorithmConfig,
-        auv_config: BoxfishConfig,
-        record: Record,
+        auv_config: BoxfishConfig = None,
+        record: Record = None,
+        robot: RobotAdapter = None,
     ) -> None:
         """
         Initializes the GripperTrainer class for training gripper actions in various environments.
@@ -50,14 +52,20 @@ class AUVTrainer:
 
         env_factory = EnvironmentFactory()
 
-        self.environment = env_factory.create_environment(env_config, auv_config)
+        self.environment = env_factory.create_environment(
+            env_config.domain,
+            env_config.task,
+            env_config=env_config,
+            auv_config=auv_config,
+            robot=robot,
+        )
 
         logging.info("Resetting Environment")
         state = self.environment.reset()
         logging.info(f"State: {state}")
         
         observation_size = len(state)
-        action_num = len(auv_config.control_actions) # starting with only xyz, will parameterize later to include roll, pitch, yaw, grabber
+        action_num = len(self.environment.control_actions)
         logging.info(
             f"Observation Space: {observation_size} Action Space: {action_num}"
         )

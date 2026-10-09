@@ -10,19 +10,22 @@ import time
 
 from auv_gym.tools.configurations import AUVEnvironmentConfig
 from auv_gym.tools.pid_controller import PIDController
-from boxfish_lib.boxfish_configuration import BoxfishConfig
 from boxfish_lib.vision.STagDetector import STagDetector
+from auv_gym.robot_adapter import RobotAdapter
 
 
 class StationaryCubeTask(Environment):
     def __init__(
         self,
         env_config: AUVEnvironmentConfig,
-        auv_config: BoxfishConfig,
+        auv_config=None,
+        robot: RobotAdapter = None,
     ):
-        super().__init__(env_config, auv_config)
+        super().__init__(env_config, auv_config, robot)
 
-        self.gripper_marker_ids = auv_config.gripper_marker_ids
+        self.gripper_marker_ids = self.robot.gripper_marker_ids
+        if len(self.gripper_marker_ids) < 2:
+            raise ValueError("StationaryCubeTask requires two gripper marker IDs")
 
         self.object_marker_detector = STagDetector(marker_size=env_config.object_marker_size, library_hd=11)
         self.gripper_marker_detector = STagDetector(marker_size=env_config.gripper_marker_size, library_hd=11)
@@ -45,8 +48,8 @@ class StationaryCubeTask(Environment):
 
 
     def get_distances(self, marker_poses):
-        left_marker = marker_poses["gripper"][7]["position"]
-        right_marker = marker_poses["gripper"][8]["position"]
+        left_marker = marker_poses["gripper"][self.gripper_marker_ids[0]]["position"]
+        right_marker = marker_poses["gripper"][self.gripper_marker_ids[1]]["position"]
         object_marker = marker_poses["object"]["position"]
 
         distances = object_marker - left_marker
@@ -72,8 +75,12 @@ class StationaryCubeTask(Environment):
         # state.append(environment_info["auv_pose"]["IMUQ"].y_accel)
         # state.append(environment_info["auv_pose"]["IMUQ"].z_accel)
 
-        state += self._pose_to_state(environment_info["gripper_poses"][7])
-        state += self._pose_to_state(environment_info["gripper_poses"][8])
+        state += self._pose_to_state(
+            environment_info["gripper_poses"][self.gripper_marker_ids[0]]
+        )
+        state += self._pose_to_state(
+            environment_info["gripper_poses"][self.gripper_marker_ids[1]]
+        )
 
         state += self._pose_to_state(environment_info["object_pose"])
 
@@ -345,8 +352,8 @@ class StationaryCubeTask(Environment):
     def pid_get_distances(self):
         markers_poses =self._get_poses()
 
-        left_marker= markers_poses["gripper"][7]["position"]
-        right_marker = markers_poses["gripper"][8]["position"]
+        left_marker = markers_poses["gripper"][self.gripper_marker_ids[0]]["position"]
+        right_marker = markers_poses["gripper"][self.gripper_marker_ids[1]]["position"]
         object_marker = markers_poses["object"]["position"]
 
         # middle_marker = (left_marker + right_marker) / 2

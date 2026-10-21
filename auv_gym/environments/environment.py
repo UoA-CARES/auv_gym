@@ -1,19 +1,20 @@
 import logging
 import random
+import json
 from abc import ABC, abstractmethod
 from functools import wraps
 import numpy as np
 import shutil
 import os
 
-from boxfish_lib.vision import utils
 import cv2
 import time
 from auv_gym.tools.configurations import AUVEnvironmentConfig
 import auv_gym.environments.reward_config as reward_config
-from boxfish_lib.vision.camera import Camera
 from scipy.spatial.transform import Rotation as R
+from auv_gym.auv_adapter import AUVAdapter
 from auv_gym.robot_adapter import BoxfishAdapter, RobotAdapter
+from auv_gym.vision_adapter import BoxfishVisionAdapter, VisionAdapter
 
 
 def exception_handler(error_message):
@@ -57,8 +58,10 @@ class Environment(ABC):
         env_config: AUVEnvironmentConfig,
         auv_config=None,
         robot: RobotAdapter = None,
+        vision: VisionAdapter = None,
     ):
         self.env_config = env_config
+        self.auv_config = auv_config
         self.display = env_config.display
 
         if robot is None:
@@ -67,15 +70,14 @@ class Environment(ABC):
             robot = BoxfishAdapter(auv_config)
 
         self.robot = robot
+        self.adapter = AUVAdapter(robot, vision or BoxfishVisionAdapter(env_config))
         # Keep the old attribute name for task and trainer compatibility.
         self.auv = robot
         
         self.is_inverted = env_config.is_inverted
 
-        # camera?
-        self.camera = Camera(
-            env_config.camera_id, env_config.camera_matrix, env_config.camera_distortion
-        )
+        self.vision = self.adapter.vision
+        self.camera = self.vision.camera
         
 
         self.action_type = robot.action_type
@@ -278,8 +280,24 @@ class Environment(ABC):
 
     def save_extras(self, base_log_dir: str):
         shutil.copy2(f"{os.path.dirname(os.path.abspath(__file__))}/reward_config.py", base_log_dir)
-        shutil.copy2(os.path.expanduser(f"~/main/configs/auv_env_config.json"), base_log_dir)
-        shutil.copy2(os.path.expanduser(f"~/main/configs/auv_config.json"), base_log_dir)
+        for filename, config in (
+            ("auv_env_config.json", self.env_config),
+            ("auv_config.json", self.auv_config),
+        ):
+            if config is None:
+                continue
+            if hasattr(config, "model_dump"):
+                config = config.model_dump()
+            elif hasattr(config, "dict"):
+                config = config.dict()
+            elif not isinstance(config, dict):
+                config = vars(config)
+            with open(os.path.join(base_log_dir, filename), "w", encoding="utf-8") as file:
+                json.dump(config, file, indent=4, default=str)
+
+    def close(self) -> None:
+        """Stop the vehicle and release vision resources."""
+        self.adapter.close()
 
 
     @exception_handler("Environment failed to reboot")

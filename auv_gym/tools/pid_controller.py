@@ -1,8 +1,6 @@
 import numpy as np
 import time
 from time import sleep
-from boxfish_lib.vision.STagDetector import STagDetector
-from boxfish_lib.vision.camera import Camera
 import numpy as np
 import cv2
 

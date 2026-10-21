@@ -19,8 +19,6 @@ from tools.configurations import AUVEnvironmentConfig
 from auv_trainer import AUVTrainer
 from tools.utils import save_reward
 
-from boxfish_lib.boxfish_configuration import BoxfishConfig
-
 from cares_reinforcement_learning.util import Record
 from cares_reinforcement_learning.util import RLParser
 from cares_reinforcement_learning.util.rl_parser import RunConfig
@@ -31,14 +29,16 @@ from cares_reinforcement_learning.util import helpers as hlp
 
 def main():
     parser = RLParser(AUVEnvironmentConfig)
-    parser.add_configuration("auv_config", BoxfishConfig)
 
     configurations = parser.parse_args()
     run_config: RunConfig = configurations["run_config"]
     env_config: AUVEnvironmentConfig = configurations["env_config"]
     training_config: cares_cfg.TrainingConfig = configurations["train_config"]
     alg_config: cares_cfg.AlgorithmConfig = configurations["alg_config"]
-    auv_config: BoxfishConfig = configurations["auv_config"]
+    # The selected adapter owns its vehicle configuration. The built-in
+    # Boxfish adapter loads its legacy config through EnvironmentFactory;
+    # custom adapters can load or construct their own config in the plugin.
+    auv_config = configurations.get("auv_config")
 
     if env_config.is_debug:
         logging.getLogger().setLevel(logging.DEBUG)
@@ -60,7 +60,7 @@ def main():
         f"\n**************\n"
         f"AUV Config:\n"
         f"**************\n"
-        f"{yaml.dump(auv_config.dict(), default_flow_style=False)}"
+        f"{yaml.dump(auv_config.dict(), default_flow_style=False) if auv_config is not None else 'Managed by the selected AUV adapter'}"
     )
     logging.info(f"------------------------------------------")
 
@@ -79,7 +79,7 @@ def main():
         algorithm=alg_config.algorithm,
         run_name=run_name,
         seed=training_config.seeds[0],
-        base_dir="../boxfish_logs",
+        base_dir="../auv_gym_logs",
         format_str=format_str,
     )
 
@@ -116,7 +116,13 @@ def main():
             #     gripper_teacher.agent.load_models("/home/yxin683/Desktop/transfer_model",f"{alg_config.algorithm}_{training_config.seeds[0]}")
             auv_trainer.train()
         elif run_config.command == "evaluate":
-            auv_trainer.agent.load_models("/home/tank/7oct/CTD4/CTD4-10-7o2--25_10_07_12-37-55-boxfish-just_spin/10/models/highest_reward",f"{alg_config.algorithm}_{training_config.seeds[0]}")
+            model_path = getattr(alg_config, "model_path", None)
+            if model_path is None:
+                raise ValueError("Evaluation requires alg_config.model_path")
+            auv_trainer.agent.load_models(
+                model_path,
+                f"{alg_config.algorithm}_{training_config.seeds[0]}",
+            )
             auv_trainer.evaluation_loop(200)
 
         if len(training_config.seeds) > 0:

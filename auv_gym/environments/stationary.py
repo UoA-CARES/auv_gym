@@ -10,8 +10,8 @@ import time
 
 from auv_gym.tools.configurations import AUVEnvironmentConfig
 from auv_gym.tools.pid_controller import PIDController
-from boxfish_lib.vision.STagDetector import STagDetector
 from auv_gym.robot_adapter import RobotAdapter
+from auv_gym.vision_adapter import VisionAdapter
 
 
 class StationaryCubeTask(Environment):
@@ -20,15 +20,22 @@ class StationaryCubeTask(Environment):
         env_config: AUVEnvironmentConfig,
         auv_config=None,
         robot: RobotAdapter = None,
+        vision: VisionAdapter = None,
     ):
-        super().__init__(env_config, auv_config, robot)
+        super().__init__(env_config, auv_config, robot, vision)
 
         self.gripper_marker_ids = self.robot.gripper_marker_ids
         if len(self.gripper_marker_ids) < 2:
             raise ValueError("StationaryCubeTask requires two gripper marker IDs")
 
-        self.object_marker_detector = STagDetector(marker_size=env_config.object_marker_size, library_hd=11)
-        self.gripper_marker_detector = STagDetector(marker_size=env_config.gripper_marker_size, library_hd=11)
+        self.object_marker_detector = self.vision.create_marker_detector(
+            marker_size=env_config.object_marker_size,
+            library_hd=11,
+        )
+        self.gripper_marker_detector = self.vision.create_marker_detector(
+            marker_size=env_config.gripper_marker_size,
+            library_hd=11,
+        )
         
 
     def _reset(self):

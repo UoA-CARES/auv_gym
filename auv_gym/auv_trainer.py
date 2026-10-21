@@ -1,10 +1,9 @@
 import logging
 import time
+from typing import Any
 
 
 from tools.configurations import AUVEnvironmentConfig
-from boxfish_lib.Boxfish import Boxfish, BoxfishError
-from boxfish_lib.boxfish_configuration import BoxfishConfig
 
 
 from cares_reinforcement_learning.memory.memory_factory import MemoryFactory
@@ -17,6 +16,7 @@ from cares_reinforcement_learning.util.network_factory import NetworkFactory
 from tools.configurations import AUVEnvironmentConfig
 from environments.environment_factory import EnvironmentFactory
 from auv_gym.robot_adapter import RobotAdapter
+from auv_gym.vision_adapter import VisionAdapter
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -27,9 +27,10 @@ class AUVTrainer:
         env_config: AUVEnvironmentConfig,
         training_config: TrainingConfig,
         alg_config: AlgorithmConfig,
-        auv_config: BoxfishConfig = None,
+        auv_config: Any = None,
         record: Record = None,
         robot: RobotAdapter = None,
+        vision: VisionAdapter = None,
     ) -> None:
         """
         Initializes the GripperTrainer class for training gripper actions in various environments.
@@ -58,6 +59,7 @@ class AUVTrainer:
             env_config=env_config,
             auv_config=auv_config,
             robot=robot,
+            vision=vision,
         )
 
         logging.info("Resetting Environment")
@@ -97,11 +99,12 @@ class AUVTrainer:
 
         Raises:
         EnvironmentError: If there's an error related to the environment during reset.
-        BoxfishError: If there's an error related to the gripper during reset.
+        OSError: If the robot or environment reports an operating-system error
+            during reset.
         """
         try:
             return self.environment.reset()
-        except (EnvironmentError, BoxfishError) as error:
+        except OSError as error:
             error_message = f"Failed to reset with message: {error}. Manually fix plz"
             logging.error(error_message)
 
@@ -110,7 +113,7 @@ class AUVTrainer:
             if fixed.lower() == 'y':
                 return self.environment_reset()
             else:
-                self.environment.auv.close()
+                self.environment.close()
                 exit(1)
 
     def environment_step(self, action_env):
@@ -126,11 +129,12 @@ class AUVTrainer:
 
         Raises:
         EnvironmentError: If there's an error related to the environment during the step.
-        BoxfishError: If there's an error related to the gripper during the step.
+        OSError: If the robot or environment reports an operating-system error
+            during the step.
         """
         try:    
             return self.environment.step(action_env)
-        except (EnvironmentError, BoxfishError) as error:
+        except OSError as error:
             error_message = f"Failed to step environment with message: {error}"
             logging.error(error_message)
 
@@ -141,8 +145,7 @@ class AUVTrainer:
                 # Truncated to True to skip the episode
                 return state, 0, False, True
             else:
-                self.environment.auv.close()
-                self.agent
+                self.environment.close()
                 exit(1)
 
     def evaluation_loop(self, total_steps, num_eval_steps=None, num_eval_episodes=None):

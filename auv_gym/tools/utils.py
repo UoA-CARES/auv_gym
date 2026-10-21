@@ -3,8 +3,8 @@ import shutil
 import matplotlib.pyplot as plt
 import pandas as pd
 import pydantic
+from typing import Any
 
-from boxfish_lib.boxfish_configuration import BoxfishConfig
 from auv_gym.tools.configurations import AUVEnvironmentConfig
 
 
@@ -152,7 +152,11 @@ def load_auv_env_config(config_path: str) -> AUVEnvironmentConfig:
         raise ValueError(error_msg) from e
     
 
-def load_auv_config(config_path: str) -> BoxfishConfig:
+def load_auv_config(config_path: str) -> Any:
+    # Boxfish configuration is only needed by the built-in Boxfish adapter.
+    # Keep that optional dependency out of custom AUV integrations.
+    from boxfish_lib.boxfish_configuration import BoxfishConfig
+
     try:
         return pydantic.parse_file_as(path=config_path, type_=BoxfishConfig)
     except FileNotFoundError as e:

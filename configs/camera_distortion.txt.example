@@ -1,0 +1,5 @@
+# Illustrative distortion coefficients in OpenCV order: k1 k2 p1 p2 k3.
+# These values are not calibrated and must be replaced with the coefficients
+# produced for your camera. Save them as whitespace-separated numbers so they
+# can be read by numpy.loadtxt().
+0.0 0.0 0.0 0.0 0.0

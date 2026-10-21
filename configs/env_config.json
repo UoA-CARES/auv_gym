@@ -1,0 +1,6 @@
+{
+    "gym": "auv",
+    "domain": "my-auv",
+    "task": "FiveMarkerSpin",
+    "save_train_checkpoints": 1
+}

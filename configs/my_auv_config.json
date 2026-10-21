@@ -1,0 +1,9 @@
+{
+    "device_name": "replace-with-your-auv-device",
+    "control_method": "replace-with-your-control-method",
+    "control_actions": ["roll"],
+    "min_values": [-1.0],
+    "max_values": [1.0],
+    "gripper_marker_ids": [18, 19],
+    "action_type": "replace-if-needed"
+}

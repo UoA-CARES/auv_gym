@@ -1,0 +1,7 @@
+# Illustrative 3x3 intrinsic matrix for a 640x480 camera. These values are not
+# calibrated and must be replaced with the matrix produced for your camera.
+# Save the matrix as whitespace-separated numbers so it can be read by
+# numpy.loadtxt().
+1000.0 0.0 320.0
+0.0 1000.0 240.0
+0.0 0.0 1.0

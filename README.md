@@ -15,7 +15,7 @@
 
 AUV Gym is the software component of an open-source, robot-agnostic underwater manipulation testbed. It connects visual marker detection, vehicle control, task-specific rewards, and the <a href="https://github.com/UoA-CARES/cares_reinforcement_learning/tree/feat/auv_gym">CARES reinforcement-learning library</a>.
 
-The current implementation is validated with a Boxfish AUV. Boxfish is one vehicle implementation, not a requirement of the testbed design: compatible vehicles can be connected through `AUVAdapter` and the adapter interfaces.
+The current implementation is validated with a Boxfish AUV. The Boxfish SDK and `boxfish_lib` are private integration dependencies and are not distributed with this repository. Boxfish is one vehicle implementation, not a requirement of the testbed design: compatible vehicles can be connected through `AUVAdapter` and the adapter interfaces.
 
 > **Hardware warning:** this repository is intended for experiments with a physical vehicle and camera. Resetting or stepping an environment can access the camera and issue movement commands. Test with the vehicle secured, confirm action limits, and keep an operator able to stop the vehicle.
 
@@ -34,24 +34,42 @@ The looping GIF preview is used here because GitHub does not reliably render rep
 ## Contents
 
 - [Requirements](#requirements)
-- [Getting started](#getting-started)
-- [Quick start](#quick-start)
-- [Usage](#usage)
 - [Hardware setup](#hardware-setup)
-- [Robot adapters](#robot-adapters)
+- [Getting started](#getting-started)
+- [Example configuration](#example-configuration)
+- [Run the Gymnasium training path](#run-the-gymnasium-training-path)
+- [Use with your AUV](#use-with-your-auv)
 - [Tasks and observations](#tasks-and-observations)
 - [Repository layout](#repository-layout)
 - [License and project status](#license-and-project-status)
 
 ## Requirements
 
-The factory-based environment path requires:
+The supported training path requires:
 
+- Python 3.10.
 - [CARES reinforcement learning (`feat/auv_gym`)](https://github.com/UoA-CARES/cares_reinforcement_learning/tree/feat/auv_gym).
 - [Gymnasium environments (`feat/auv_gym`)](https://github.com/UoA-CARES/gymnasium_envrionments/tree/feat/auv_gym).
-- A compatible camera, calibration files, fiducial-marker setup, and vehicle-control configuration.
+- A camera, calibration files, fiducial-marker setup, and an AUV control/SDK package.
+- An [`AUVAdapter`](auv_gym/auv_adapter.py) implementation for your vehicle.
 
-Also install your vehicle's control/SDK package and provide the adapter described in [Robot adapters](#robot-adapters). 
+
+## Hardware setup
+
+The physical fixture uses a marked outer housing, an  inner ring, and removable toolheads for different manipulation tasks.
+
+![Fixture, outer housing, inner ring, and toolheads](auv_gym/image/fixture_and_toolheads.jpeg)
+
+The fabrication files are in [`auv_gym/hardware`](auv_gym/hardware):
+
+- [`inner_ring.3mf`](auv_gym/hardware/inner_ring.3mf) is the inner ring.
+- [`Outter_housing.3mf`](auv_gym/hardware/Outter_housing.3mf) is the outer housing. The 3MF files support multi-colour printing or separate prints.
+- [`toolhead1/`](auv_gym/hardware/toolhead1) contains the Toolhead 1 base and its two-piece left/right mold.
+- [`toolhead2/`](auv_gym/hardware/toolhead2) contains the Toolhead 2 base and its two-piece left/right mold.
+- [`toolhead3.stl`](auv_gym/hardware/toolhead3.stl) is the standalone Toolhead 3 mesh.
+
+The Toolhead 1 and Toolhead 2 mold designs were used with [Smooth-On PMC-770](https://www.smooth-on.com/products/pmc-770/). Select the printing or casting workflow appropriate for the material and fabrication equipment available for your build.
+
 
 ## Getting started
 
@@ -67,7 +85,9 @@ python -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 
+python -m pip install -r requirements.txt
 python -m pip install -r ../cares_reinforcement_learning/requirements.txt
+python -m pip install -r ../gymnasium_envrionments/requirements.txt
 python -m pip install -e ../cares_reinforcement_learning
 python -m pip install -e .
 ```
@@ -83,35 +103,148 @@ parent-directory/
 
 This repository is developed against the CARES RL and Gymnasium environments **`feat/auv_gym`** branches. Keep both checkouts on those branches; other revisions may not provide the interfaces used by AUV Gym.
 
-Before running a physical experiment, verify the installed CARES RL revision, camera calibration, marker IDs, vehicle action limits, and stop behavior.
+Install your AUV SDK in the same virtual environment. The private Boxfish SDK and `boxfish_lib` are not included here; authorized Boxfish users must provide them separately when using the built-in `boxfish` backend. Other users should provide their own SDK and adapter.
 
-## Quick start
+Before running a physical experiment, verify the installed revisions, camera calibration, marker IDs, vehicle action limits, and stop behavior.
 
-For the validated Boxfish hardware setup, use the legacy CLI below after
-installing `boxfish_lib`:
+## Example configuration
+
+The [`configs/`](configs) directory is a template showing the expected file layout. It contains placeholder values and calibration files; replace them before running a vehicle.
+
+For a first setup, copy it to a separate working directory and edit:
+
+- `env_config.json` for the Gymnasium domain and task.
+- `auv_env_config.json` for camera, marker, and episode settings.
+- `my_auv_config.json` for your native AUV settings.
+- `alg_config.json` and `train_config.json` for the experiment.
+
+Use the copied directory as both `--data_path` and `AUV_GYM_CONFIG_DIR` if your adapter follows the example layout.
+
+## Run the Gymnasium training path
+
+The supported entry point is the `run.py` inside `gymnasium_envrionments/scripts`. AUV Gym supplies the environment and adapter code; the Gymnasium repository supplies the training entry point:
 
 ```bash
-python3 run.py train config --data_path /home/anyone/main/configs
+python3 /path/to/gymnasium_envrionments/scripts/run.py train config \
+  --data_path /path/to/training-configs
 ```
 
-This is an online hardware example, not a simulator smoke test. Depending on the task, marker loss can pause for operator input or truncate an episode.
+The `--data_path` directory must contain `alg_config.json`, `env_config.json`, and `train_config.json`. The command starts the CARES RL runner, which creates the Gymnasium AUV wrapper and then calls AUV Gym's `EnvironmentFactory`.
 
-For another AUV, register its adapter and run the existing CARES/Gymnasium
-runner as described in [CARES RL bridge](#cares-rl-bridge).
+This is an online hardware path, not a simulator smoke test. Resetting or stepping can access the camera and issue movement commands.
 
-## Usage
+## Use with your AUV
 
-### Environment API
+The integration has two configuration layers:
 
-AUV Gym uses a small custom API:
+1. The Gymnasium runner reads `alg_config.json`, `env_config.json`, and
+   `train_config.json` from `--data_path`.
+2. AUV Gym reads `auv_env_config.json` from `AUV_GYM_CONFIG_DIR`. This contains
+   camera, calibration, marker, display, and episode settings.
 
-- `reset()` returns the initial state.
-- `step(action)` returns `state, reward, done, truncated, environment_info`.
-- `sample_action()` samples an action using the configured action bounds.
-- `normalize()` and `denormalize()` convert between vehicle action ranges and `[-1, 1]`.
+For a custom vehicle, the adapter plugin loads any additional native vehicle configuration it needs. The private Boxfish backend additionally reads `auv_config.json` from `AUV_GYM_CONFIG_DIR`.
 
-The environment factory includes the `boxfish` domain and supports additional
-domains registered by an adapter plugin. The task names are:
+### 1. Implement the adapter
+
+Create a Python module for your vehicle. It must register a domain and return an `AUVAdapter`:
+
+```python
+# my_auv_backend.py
+import json
+import os
+from pathlib import Path
+
+from auv_gym import AUVAdapter
+from auv_gym.environments.environment_factory import EnvironmentFactory
+
+from my_auv_adapters import MyRobotAdapter, MyVisionAdapter
+
+
+def make_adapter(env_config, _auv_config):
+    config_path = Path(os.environ["MY_AUV_CONFIG"])
+    with config_path.open(encoding="utf-8") as file:
+        auv_config = json.load(file)
+    return AUVAdapter(
+        MyRobotAdapter(auv_config),
+        MyVisionAdapter(env_config, auv_config),
+    )
+
+
+EnvironmentFactory.register_backend(
+    "my-auv",
+    adapter_factory=make_adapter,
+)
+```
+
+Make the module importable by installing its package or adding its directory to `PYTHONPATH`. The runner loads it before creating the environment:
+
+```bash
+export PYTHONPATH=/path/to/my-auv-adapter:$PYTHONPATH
+export AUV_GYM_ADAPTER_MODULE=my_auv_backend
+```
+
+### 2. Implement the control and vision contracts
+
+`MyRobotAdapter` must implement:
+
+- `control_actions`, `min_values`, `max_values`, `gripper_marker_ids`, and
+  `action_type`.
+- `info()`, `safety_check()`, `home()`, `move(actions)`, and `stop()`.
+- Task-specific methods such as `level()`, `reverse_hard_stop()`, or
+  `move_roll_grabber()` when the selected task requires them.
+- `close()` to stop the vehicle and release SDK resources.
+
+`MyVisionAdapter` must provide:
+
+- `camera`, with `get_frame()`, `camera_matrix`, and `camera_distortion`.
+- `create_marker_detector(...)`, returning a detector with
+  `get_marker_poses(...)`.
+
+Each marker pose must contain at least `position`; rotation tasks also use `orientation`, and the stationary task may use `r_vec`. `RobotAdapter.info()` must return the robot state expected by the selected task.
+
+Both interfaces may wrap the same native AUV client. They do not require two physical devices or two SDK connections.
+
+### 3. Configure the environment and task
+
+Copy the training configs and change the domain from `boxfish` to your adapter's domain:
+
+```json
+{
+  "gym": "auv",
+  "domain": "my-auv",
+  "task": "FiveMarkerSpin",
+  "save_train_checkpoints": 1
+}
+```
+
+Create an AUV Gym configuration directory containing at least:
+
+```text
+/path/to/my-auv-config/
+├── auv_env_config.json
+├── camera_matrix.txt
+└── camera_distortion.txt
+```
+
+Set the paths in `auv_env_config.json` to the calibration files and point the factory at that directory:
+
+```bash
+export AUV_GYM_CONFIG_DIR=/path/to/my-auv-config
+export MY_AUV_CONFIG=/path/to/my-auv-config/my_auv_config.json
+```
+
+### 4. Run training
+
+```bash
+python3 /path/to/gymnasium_envrionments/scripts/run.py train config \
+  --data_path /path/to/training-configs
+```
+
+The CARES RL and Gymnasium repositories do not need to be modified. The AUV Gym wrapper preserves their existing runner contract while the adapter handles vehicle control, camera access, and marker detection.
+
+## Tasks and observations
+
+The factory includes a private `boxfish` domain and custom domains registered by adapter plugins. The available task names are:
 
 | Task | Implementation | Purpose |
 | --- | --- | --- |
@@ -122,17 +255,20 @@ domains registered by an adapter plugin. The task names are:
 
 `RotationTask` is abstract in the current source, so use `OneMarkerSpin` or `FiveMarkerSpin` for a concrete rotation environment.
 
-### Configuration
+The built-in tasks return NumPy observations assembled from robot state and marker poses. Their exact size and meaning depend on the task. The current validated experiments use `OneMarkerSpin` and `FiveMarkerSpin`.
 
-When the built-in `boxfish` domain uses default configuration loading,
-`EnvironmentFactory` expects:
+## Configuration reference
+
+When using the private `boxfish` domain, `AUV_GYM_CONFIG_DIR` must contain:
 
 ```text
 ~/main/configs/auv_env_config.json
 ~/main/configs/auv_config.json
 ```
 
-`auv_env_config.json` contains camera, calibration, marker-size, display, tolerance, and episode settings. `auv_config.json` contains the vehicle control method, device name, action names, action bounds, home sequence, and gripper-marker IDs. A custom domain can use its own vehicle configuration and pass it to its adapter factory.
+`~/main/configs` is only the default. Set `AUV_GYM_CONFIG_DIR` explicitly for your vehicle so the runner does not depend on that path.
+
+`auv_env_config.json` contains camera, calibration, marker-size, display, tolerance, and episode settings. For the private Boxfish integration, `auv_config.json` contains the control method, device name, action names, action bounds, home sequence, and marker IDs. Custom adapters should load their own native configuration in the plugin.
 
 Example shape for `auv_env_config.json`:
 
@@ -163,71 +299,7 @@ Example shape for `auv_config.json`:
 
 These snippets are illustrative. Use values calibrated for the vehicle, camera, marker layout, and selected task.
 
-## Hardware setup
 
-The physical fixture uses a marked outer housing, an  inner ring, and removable toolheads for different manipulation tasks.
-
-![Fixture, outer housing, inner ring, and toolheads](auv_gym/image/fixture_and_toolheads.jpeg)
-
-The fabrication files are in [`auv_gym/hardware`](auv_gym/hardware):
-
-- [`inner_ring.3mf`](auv_gym/hardware/inner_ring.3mf) is the inner ring.
-- [`Outter_housing.3mf`](auv_gym/hardware/Outter_housing.3mf) is the outer housing. The 3MF files support multi-colour printing or separate prints.
-- [`toolhead1/`](auv_gym/hardware/toolhead1) contains the Toolhead 1 base and its two-piece left/right mold.
-- [`toolhead2/`](auv_gym/hardware/toolhead2) contains the Toolhead 2 base and its two-piece left/right mold.
-- [`toolhead3.stl`](auv_gym/hardware/toolhead3.stl) is the standalone Toolhead 3 mesh.
-
-The Toolhead 1 and Toolhead 2 mold designs were used with [Smooth-On PMC-770](https://www.smooth-on.com/products/pmc-770/). Select the printing or casting workflow appropriate for the material and fabrication equipment available for your build.
-
-## Robot adapters
-
-The environments depend on small adapters rather than directly on the Boxfish controller. [`auv_adapter.py`](auv_gym/auv_adapter.py) provides the public `AUVAdapter` facade. [`robot_adapter.py`](auv_gym/robot_adapter.py) provides `RobotAdapter` and includes `BoxfishAdapter`, which is used for the existing Boxfish configuration. [`vision_adapter.py`](auv_gym/vision_adapter.py) provides the camera and marker-detector contract.
-
-To connect another robot, create a class that inherits from `RobotAdapter` and store the robot's native controller or SDK client inside it. The adapter translates AUV Gym actions into the units and commands required by the robot.
-
-An adapter should:
-
-1. Define `control_actions`, `min_values`, and `max_values` with matching lengths, then set the marker IDs and action type required by the task.
-2. Implement `info()`, `safety_check()`, `home()`, `move(actions)`, and `stop()`.
-3. Add task-specific motion methods such as `move_roll_grabber()` or `spin_by_angle()` when the selected task requires them.
-4. Return the observation fields expected by the task, including the IMU and marker-pose data used by its state conversion.
-5. Release connections and leave the robot stopped in `close()`.
-
-Pass a custom `AUVAdapter` as `adapter_factory=...` when registering a domain. The facade contains a `RobotAdapter` and `VisionAdapter`, but this does not
-require two physical devices or two SDK clients: if one AUV library owns both
-control and camera access, both interfaces can wrap the same underlying client.
-
-`RobotAdapter` must translate actions and expose the task's robot state.  `VisionAdapter` must expose `camera` and `create_marker_detector(marker_size, library_hd, error_correction=-1)`. The camera and detector must provide the methods and marker-pose structures used by the selected task.
-
-### CARES RL bridge
-
-The existing CARES/Gymnasium runner can use AUV Gym without changes to CARES RL or Gymnasium. AUV Gym preserves the runner's environment contract while keeping vehicle control and vision behind adapters.
-
-For a reusable vehicle backend, register one unified adapter under a domain:
-
-```python
-from auv_gym import AUVAdapter
-from auv_gym.environments.environment_factory import EnvironmentFactory
-
-EnvironmentFactory.register_backend(
-    "my-auv",
-    adapter_factory=lambda env_config, auv_config: AUVAdapter(
-        MyRobotAdapter(auv_config),
-        MyVisionAdapter(env_config),
-    ),
-)
-```
-
-The lower-level `robot_factory=...` and `vision_factory=...` registration form remains available when the two interfaces are constructed separately.
-
-When the existing runner is started in another process, set `AUV_GYM_ADAPTER_MODULE` to a module that performs this registration. `AUV_GYM_CONFIG_DIR` can point the default factory at that vehicle's configuration directory.
-
-
-## Tasks and observations
-
-- Observations are NumPy arrays assembled from IMU and detected-marker pose information. Their size and meaning depend on the selected task.
-- `environments/reward_config.py` contains the active rotation/yaw reward implementation, including angular-distance progress, distance-to-goal shaping, and goal bonuses.
-- The paper's reported experiments use the single-marker and five-marker rotation tasks. Other task code should be treated as additional or experimental functionality unless separately validated.
 
 ## Repository layout
 
@@ -251,14 +323,19 @@ auv_gym/
 │   │   ├── IMG_0560.MOV
 │   │   └── IMG_0560_preview.gif
 │   ├── tools/
+│   ├── auv_adapter.py
 │   ├── robot_adapter.py
-│   ├── auv_trainer.py
-│   └── run.py
+│   └── vision_adapter.py
+├── tests/
+│   └── test_backend_bridge.py
 ├── LICENSE
 ├── LICENSE-HARDWARE
-├── paper.tex
 └── setup.py
 ```
+
+The former direct-runner/trainer files are not part of the supported
+Gymnasium training path. Do not use a second AUV Gym training entry point; load
+your adapter through `AUV_GYM_ADAPTER_MODULE` and start the Gymnasium runner.
 
 
 ## License and project status

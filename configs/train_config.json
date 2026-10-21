@@ -1,0 +1,8 @@
+{
+    "seeds": [10],
+    "number_steps_per_evaluation": 500,
+    "number_eval_episodes": 5,
+    "record_eval_video": 1,
+    "checkpoint_interval": 500,
+    "max_workers": 1
+}

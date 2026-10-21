@@ -1,0 +1,13 @@
+{
+    "camera_id": 0,
+    "camera_matrix": "/path/to/my-auv-config/camera_matrix.txt",
+    "camera_distortion": "/path/to/my-auv-config/camera_distortion.txt",
+    "is_inverted": false,
+    "episode_horizon": 20,
+    "marker_size": 30,
+    "gripper_marker_size": 30,
+    "object_marker_size": 45,
+    "noise_tolerance": 15,
+    "display": true,
+    "is_debug": false
+}
